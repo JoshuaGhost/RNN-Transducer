@@ -267,3 +267,18 @@ class CharTokenizer(BaseTokenizer):
 
     def preprocess_tokens(self, sentence: str) -> List[str]:
         return list(sentence)
+
+
+from transformers import BasicTokenizer as HFBasicTokenizer
+
+
+class WordTokenizer(BaseTokenizer):
+    def __init__(self) -> None:
+        super().__init__()
+        self._tokenizer = HFBasicTokenizer()
+
+    def get_tokens(self, data: List[str]):
+        return set(" ".join(data).split())
+
+    def preprocess_tokens(self, sentence: str) -> List[str]:
+        return self._tokenizer.tokenize(sentence)
