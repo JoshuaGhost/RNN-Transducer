@@ -1,9 +1,9 @@
 from pathlib import Path
 from model import Model
-from tokenizer import CharTokenizer, ITokenizer
+from tokenizer import CharTokenizer, ITokenizer, WordTokenizer
 from utils import get_formated_date, load_stat_dict
 from torch.optim import Optimizer
-from data import AudioPipeline, DataLoader, TextPipeline
+from data import AudioPipeline, CSVDataLoader, HFDataLoader, IDataLoader, TextPipeline
 from typing import Callable, Union
 from torch.nn import Module
 from functools import wraps
@@ -17,7 +17,7 @@ OPT = {"sgd": torch.optim.SGD}
 
 
 def save_checkpoint(func) -> Callable:
-    """Save a checkpoint after each iteration"""
+    """Save a checkpoint after each iteration."""
 
     @wraps(func)
     def wrapper(obj, *args, **kwargs):
@@ -43,8 +43,8 @@ class Trainer:
         optimizer: Optimizer,
         model: Module,
         device: str,
-        train_loader: DataLoader,
-        test_loader: DataLoader,
+        train_loader: IDataLoader,
+        test_loader: IDataLoader,
         epochs: int,
         length_multiplier: float,
     ) -> None:
@@ -61,7 +61,7 @@ class Trainer:
 
     def fit(self):
         """The main training loop that train the model on the training
-        data then test it on the test set and then log the results
+        data then test it on the test set and then log the results.
         """
         for _ in range(self.epochs):
             self.train()
@@ -69,15 +69,15 @@ class Trainer:
             self.print_results()
 
     def set_train_mode(self) -> None:
-        """Set the models on the training mood"""
+        """Set the models on the training mood."""
         self.model = self.model.train()
 
     def set_test_mode(self) -> None:
-        """Set the models on the testing mood"""
+        """Set the models on the testing mood."""
         self.model = self.model.eval()
 
     def print_results(self):
-        """Prints the results after each epoch"""
+        """Print the results after each epoch."""
         result = ""
         for key, value in self.history.items():
             result += f"{key}: {str(value[-1])}, "
@@ -85,7 +85,7 @@ class Trainer:
 
     def test(self):
         """Iterate over the whole test data and test the models
-        for a single epoch
+        for a single epoch.
         """
         total_loss = 0
         self.set_test_mode()
@@ -108,8 +108,8 @@ class Trainer:
 
     @save_checkpoint
     def train(self):
-        """Iterates over the whole training data and train the models
-        for a single epoch
+        """Iterate over the whole training data and train the models
+        for a single epoch.
         """
         total_loss = 0
         self.set_train_mode()
@@ -170,11 +170,41 @@ def get_tokenizer():
     return tokenizer
 
 
-def get_data_loader(file_path: Union[str, Path], tokenizer: ITokenizer):
+def get_tokenizer():
+    tokenizer = WordTokenizer()
+    if hprams.tokenizer.tokenizer_file is not None:
+        tokenizer = tokenizer.load_tokenizer(hprams.tokenizer.tokenizer_file)
+    tokenizer = tokenizer.add_phi_token().add_pad_token()
+    tokenizer = tokenizer.add_sos_token().add_eos_token()
+    tokenizer = tokenizer.add_oov_token()
+    with open(hprams.tokenizer.vocab_path, "r") as f:
+        vocab = f.read().split("\n")
+    tokenizer.set_tokenizer(vocab)
+    tokenizer.save_tokenizer("tokenizer.json")
+    return tokenizer
+
+
+def get_csv_data_loader(file_path: Union[str, Path], tokenizer: ITokenizer):
     audio_pipeline = AudioPipeline()
     text_pipeline = TextPipeline()
-    return DataLoader(
+    return CSVDataLoader(
         file_path,
+        text_pipeline,
+        audio_pipeline,
+        tokenizer,
+        hprams.training.batch_size,
+        hprams.data.max_str_len,
+    )
+
+
+from datasets import Dataset as HFDataset
+
+
+def get_hf_dataloader(hf_dataset: HFDataset, tokenizer: ITokenizer):
+    audio_pipeline = AudioPipeline()
+    text_pipeline = TextPipeline()
+    return HFDataLoader(
+        hf_dataset,
         text_pipeline,
         audio_pipeline,
         tokenizer,
@@ -189,8 +219,8 @@ def get_trainer():
     pad_idx = tokenizer.special_tokens.pad_id
     sos_idx = tokenizer.special_tokens.sos_id
     vocab_size = tokenizer.vocab_size
-    train_loader = get_data_loader(hprams.data.training_file, tokenizer)
-    test_loader = get_data_loader(hprams.data.testing_file, tokenizer)
+    train_loader = get_csv_data_loader(hprams.data.training_file, tokenizer)
+    test_loader = get_csv_data_loader(hprams.data.testing_file, tokenizer)
     criterion = Loss(phi_idx)
     model = load_model(vocab_size, pad_idx=pad_idx, phi_idx=phi_idx, sos_idx=sos_idx)
     optimizer = OPT[hprams.training.optimizer](

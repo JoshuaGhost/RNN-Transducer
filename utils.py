@@ -11,7 +11,7 @@ import json
 class IPipeline(ABC):
     @abstractmethod
     def run():
-        """Used to run all the callables functions sequantially"""
+        """Use to run all the callables functions sequantially."""
         pass
 
 
@@ -26,7 +26,7 @@ def load_audio(file_path: Union[str, Path]) -> Tuple[torch.Tensor, int]:
 
 
 def get_formated_date() -> str:
-    """Used to generate time stamp
+    """Use to generate time stamp.
     Returns:
         str: a formated string represnt the current time stap
     """
@@ -35,7 +35,7 @@ def get_formated_date() -> str:
 
 
 def load_stat_dict(model: Module, model_path: Union[str, Path]) -> None:
-    """Used to load the weigths for the given model
+    """Use to load the weigths for the given model.
     Args:
         model (Module): the model to load the weights into
         model_path (Union[str, Path]): tha path of the saved weigths

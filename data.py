@@ -11,7 +11,7 @@ from utils import IPipeline, load_audio
 
 
 class AudioPipeline(IPipeline):
-    """Loads the audio and pass it through different transformation layers"""
+    """Load the audio and pass it through different transformation layers."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -33,7 +33,7 @@ class AudioPipeline(IPipeline):
 
 
 class TextPipeline(IPipeline):
-    """pass the text through different transformation layers"""
+    """pass the text through different transformation layers."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -92,7 +92,33 @@ class BaseData:
         return tokens + [self.tokenizer.special_tokens.pad_id] * length
 
 
-class DataLoader(BaseData):
+from abc import ABC
+
+
+class IDataLoader(BaseData, ABC):
+    def __init__(
+        self,
+        text_pipeline: IPipeline,
+        audio_pipeline: IPipeline,
+        tokenizer: ITokenizer,
+        max_len: int,
+    ) -> None:
+        super().__init__(text_pipeline, audio_pipeline, tokenizer, max_len)
+
+    def get_max_duration(self, start_idx: int, end_idx: int) -> float:
+        raise NotImplementedError
+
+    def get_audios(self, start_idx: int, end_idx: int) -> Tensor:
+        raise NotImplementedError
+
+    def get_texts(self, start_idx: int, end_idx: int) -> Tensor:
+        raise NotImplementedError
+
+    def __iter__(self):
+        raise NotImplementedError
+
+
+class CSVDataLoader(IDataLoader):
     def __init__(
         self,
         file_path: Union[str, Path],
@@ -132,6 +158,64 @@ class DataLoader(BaseData):
         args = self.df[hprams.data.csv_file_keys.text].iloc[start_idx:end_idx]
         lengths = list(map(lambda x: len(x) + 1, args.values))
         result = list(map(self._get_padded_tokens, args))
+        result = torch.stack(result, dim=0)
+        return result, torch.IntTensor(lengths)
+
+    def __iter__(self):
+        self.idx = 0
+        while True:
+            start = self.idx * self.batch_size
+            end = (self.idx + 1) * self.batch_size
+            end = min(end, self.num_examples)
+            if start > self.num_examples or start == end:
+                break
+            self.idx += 1
+            yield (self.get_audios(start, end), *self.get_texts(start, end))
+
+
+from datasets import Dataset as HFDataset
+
+
+class HFDataLoader(IDataLoader):
+    def __init__(
+        self,
+        hf_dataset: HFDataset,
+        text_pipeline: IPipeline,
+        audio_pipeline: IPipeline,
+        tokenizer: ITokenizer,
+        batch_size: int,
+        max_len: int,
+    ) -> None:
+        super().__init__(text_pipeline, audio_pipeline, tokenizer, max_len)
+        self.batch_size = batch_size
+        self.ds = hf_dataset
+        self.num_examples = len(self.ds)
+        self.idx = 0
+
+    def __len__(self):
+        length = self.num_examples // self.batch_size
+        mod = self.num_examples % self.batch_size
+        return length + 1 if mod > 0 else length
+
+    def get_max_duration(self, start_idx: int, end_idx: int) -> float:
+        return max(map(lambda x: len(x["array"]), self.ds[start_idx:end_idx]["audio"]))
+
+    def get_audios(self, start_idx: int, end_idx: int) -> Tensor:
+        max_duration = self.get_max_duration(start_idx, end_idx)
+        result = list(
+            map(
+                self._get_padded_aud,
+                [_["path"] for _ in self.ds[start_idx:end_idx]["audio"]],
+                [max_duration] * (end_idx - start_idx),
+            )
+        )
+        result = torch.stack(result, dim=1)
+        return torch.squeeze(result)
+
+    def get_texts(self, start_idx: int, end_idx: int) -> Tensor:
+        texts = self.ds[start_idx:end_idx]["text"]
+        lengths = list(map(lambda x: len(x) + 1, texts))
+        result = list(map(self._get_padded_tokens, texts))
         result = torch.stack(result, dim=0)
         return result, torch.IntTensor(lengths)
 
