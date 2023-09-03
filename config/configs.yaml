@@ -4,15 +4,17 @@ length_multiplier: 1.05
 
 tokenizer:
   tokenizer_file: null
-  vocab_path: "files/vocab.txt"
+  vocab_path: drive/MyDrive/rnn_transducer/files/vocab.txt
 
 data:
   sampling_rate: 16000
   n_mel_channels: 40
   hop_length: 200
   n_ftt: 400
-  training_file: "files/train.csv"
-  testing_file: "files/test.csv"
+  #training_file: "files/train.csv"
+  #testing_file: "files/test.csv"
+  data_folder: drive/MyDrive/rnn_transducer/files/timit_asr_small
+  cache_folder: drive/MyDrive/rnn_transducer/cache/
   max_str_len: 250
   descending_order: False
   sep: "|"

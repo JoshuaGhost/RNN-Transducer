@@ -1,13 +1,19 @@
 # %%
 import datasets
 from loss import Loss
+from hprams import hprams
 
-ds = datasets.load_dataset("timit_asr", data_dir="./files/timit_asr")
+ds = datasets.load_dataset(
+    "timit_asr",
+    data_dir=hprams.data.data_folder,
+    cache_dir=hprams.data.cache_folder,
+    streaming=True,
+)
 # %%
 from train import OPT, Trainer, load_model
 from train import get_tokenizer
 from train import get_hf_dataloader
-from hprams import hprams
+
 
 tokenizer = get_tokenizer()
 phi_idx = tokenizer.special_tokens.phi_id
@@ -15,8 +21,9 @@ pad_idx = tokenizer.special_tokens.pad_id
 sos_idx = tokenizer.special_tokens.sos_id
 vocab_size = tokenizer.vocab_size
 
-train_loader = get_hf_dataloader(ds["train"], tokenizer)
-test_loader = get_hf_dataloader(ds["test"], tokenizer)
+train_loader = get_hf_dataloader(ds["train"], tokenizer, datasize=160)
+test_loader = get_hf_dataloader(ds["test"], tokenizer, datasize=20)
+
 # %%
 criterion = Loss(phi_idx)
 model = load_model(vocab_size, pad_idx=pad_idx, phi_idx=phi_idx, sos_idx=sos_idx)

@@ -185,11 +185,16 @@ class HFDataLoader(IDataLoader):
         tokenizer: ITokenizer,
         batch_size: int,
         max_len: int,
+        datasize: None,
     ) -> None:
         super().__init__(text_pipeline, audio_pipeline, tokenizer, max_len)
         self.batch_size = batch_size
         self.ds = hf_dataset
-        self.num_examples = len(self.ds)
+        self.num_examples = len(self.ds) if hasattr(self.ds, "__len__") else datasize
+        if self.num_examples is None:
+            assert ValueError(
+                "either dataset should be non-streaming, or the dataize should be specified"
+            )
         self.idx = 0
 
     def __len__(self):

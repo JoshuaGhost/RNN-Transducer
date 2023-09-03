@@ -5,8 +5,8 @@ import torch.nn as nn
 
 
 class PredNet(nn.Module):
-    """Implements the functionalities of the
-    predict network in the model architecture
+    """Implement the functionalities of the
+    predict network in the model architecture.
 
     Attributes
     ----------
@@ -25,7 +25,7 @@ class PredNet(nn.Module):
         n_layers: int,
         dropout: float,
     ) -> None:
-        """Constructs all the necessary attributes
+        """Construct all the necessary attributes.
 
         Args:
             vocab_size (int): The number of vocabularies in the dataset,
@@ -78,7 +78,7 @@ class PredNet(nn.Module):
 
 
 class TransNet(nn.Module):
-    """Implements the functionalities of the
+    """Implement the functionalities of the
     transcription network in the model architecture, where
     the input is the speech features and projects it to high
     level feature representation.
@@ -121,7 +121,7 @@ class TransNet(nn.Module):
 
 
 class JoinNet(nn.Module):
-    """Implements the functionalities of the
+    """Implement the functionalities of the
     Join network in the model architecture, where
     the inputs are high speech features at time tn and the prediction at step u
     and predicts the next character or phi based on that, there are two
@@ -158,7 +158,7 @@ class JoinNet(nn.Module):
         self.fc = nn.Linear(in_features=input_size, out_features=vocab_size)
 
     def forward(self, f: Tensor, g: Tensor) -> Tensor:
-        """performs forward propagation step
+        """performs forward propagation step.
 
         Args:
             f (Tensor): The transcription vector at time t of shape (B, 1, h)
@@ -173,10 +173,10 @@ class JoinNet(nn.Module):
 
 
 class Model(nn.Module):
-    """Implements the full RNN-T model which consists of
+    """Implement the full RNN-T model consisting of
         - prediction network
         - transcription network
-        - join network
+        - join network.
     Attributes
     ----------
     prednet : nn.Module
@@ -247,7 +247,7 @@ class Model(nn.Module):
         return result, term_state
 
     def keep_last_char(self, gu: Tensor, preds: Tensor) -> Tensor:
-        """Keeps the characters only in the gu Tensors, where the phis get
+        """Keep the characters only in the gu Tensors, where the phis get
         neglected to not be passed to the prednet.
 
         Args:
@@ -269,9 +269,9 @@ class Model(nn.Module):
         term_state: Tensor,
         t: int,
     ) -> Tuple[Tensor, Tensor, Tensor]:
-        """Updates the positional related tensors, these positionals store
+        """Update the positional related tensors, these positionals store
         the state of the pointers and these are teh counter and the term_state
-        tensors
+        tensors.
 
         Args:
             gu (Tensor): The latest predicted characters
@@ -293,7 +293,7 @@ class Model(nn.Module):
     def predict_next(
         self, gu: Tensor, h: Tensor, c: Tensor, counter: Tensor, trans_result: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
-        """Does a single prediction over time
+        """Do a single prediction over time.
 
         Args:
             gu (Tensor): The latest character predicted
@@ -333,10 +333,10 @@ class Model(nn.Module):
     def clip_counter(
         self, counter: Tensor, ceil_vector: Tensor
     ) -> Tuple[Tensor, Tensor]:
-        """Clips the counter to the ceil values,
+        """Clip the counter to the ceil values,
         if the value at index i in the counter
         exceeded teh value at index i at the ceil_vector
-        it will be assigned to the ceil_vector[i]
+        it will be assigned to the ceil_vector[i].
 
         Args:
             counter (Tensor): The counter vector to be updated
@@ -356,8 +356,8 @@ class Model(nn.Module):
     def update_termination_state(
         self, term_state: Tensor, update_mask: Tensor, last_index: int
     ) -> Tensor:
-        """Updates the termination state, where the
-        it stores if an example m reached the end of transcription or not
+        """Update the termination state, where the
+        it stores if an example m reached the end of transcription or not.
 
         Args:
             term_state (Tensor): The latest termination state of (N,) shape
