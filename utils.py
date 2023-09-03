@@ -11,13 +11,12 @@ import json
 class IPipeline(ABC):
     @abstractmethod
     def run():
-        """Used to run all the callables functions sequantially
-        """
+        """Used to run all the callables functions sequantially"""
         pass
 
 
 def save_json(file_path: str, data: dict):
-    with open(file_path, 'w', encoding='utf-8') as f:
+    with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
 
 
@@ -32,7 +31,7 @@ def get_formated_date() -> str:
         str: a formated string represnt the current time stap
     """
     t = datetime.now()
-    return f'{t.year}{t.month}{t.day}-{t.hour}{t.minute}{t.second}'
+    return f"{t.year}{t.month}{t.day}-{t.hour}{t.minute}{t.second}"
 
 
 def load_stat_dict(model: Module, model_path: Union[str, Path]) -> None:

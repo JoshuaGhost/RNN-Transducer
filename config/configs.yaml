@@ -1,31 +1,30 @@
 checkpoint: null
-device: 'cuda'
+device: "cuda"
 length_multiplier: 1.05
 
 tokenizer:
   tokenizer_file: null
-  vocab_path: 'files/vocab.txt'
+  vocab_path: "files/vocab.txt"
 
 data:
   sampling_rate: 16000
   n_mel_channels: 40
   hop_length: 200
   n_ftt: 400
-  training_file: 'files/train.csv'
-  testing_file: 'files/test.csv'
+  training_file: "files/train.csv"
+  testing_file: "files/test.csv"
   max_str_len: 250
   descending_order: False
-  sep: '|'
+  sep: "|"
   csv_file_keys:
-    duration: 'duration'
-    path: 'path'
-    text: 'text'
-
+    duration: "duration"
+    path: "path"
+    text: "text"
 
 training:
-  checkpoints_dir: 'checkpoints'
+  checkpoints_dir: "checkpoints"
   batch_size: 8
-  optimizer: 'sgd'
+  optimizer: "sgd"
   epochs: 200
   optim:
     learning_rate: 0.01
@@ -39,7 +38,7 @@ model:
     dropout: 0.1
 
   trans_net:
-    input_size: ${data.n_mel_channels} 
+    input_size: ${data.n_mel_channels}
     hidden_size: 128 # half pred_net hidden_size if bidirectional
     n_layers: 2
     dropout: 0.1
@@ -47,4 +46,4 @@ model:
 
   join_net:
     input_size: ${model.pred_net.hidden_size}
-    mode: 'add' # add or mul 
+    mode: "add" # add or mul

@@ -15,15 +15,16 @@ class PredNet(nn.Module):
     lstm : nn.Module
         The network's RNN layer
     """
+
     def __init__(
-            self,
-            vocab_size: int,
-            emb_dim: int,
-            pad_idx: int,
-            hidden_size: int,
-            n_layers: int,
-            dropout: float
-            ) -> None:
+        self,
+        vocab_size: int,
+        emb_dim: int,
+        pad_idx: int,
+        hidden_size: int,
+        n_layers: int,
+        dropout: float,
+    ) -> None:
         """Constructs all the necessary attributes
 
         Args:
@@ -38,23 +39,18 @@ class PredNet(nn.Module):
         super().__init__()
         self.n_layers = n_layers
         self.hidden_size = hidden_size
-        self.emb = nn.Embedding(
-            vocab_size, emb_dim, padding_idx=pad_idx
-            )
+        self.emb = nn.Embedding(vocab_size, emb_dim, padding_idx=pad_idx)
         self.lstm = nn.LSTM(
             input_size=emb_dim,
             hidden_size=hidden_size,
             num_layers=n_layers,
             batch_first=True,
-            dropout=dropout
+            dropout=dropout,
         )
 
     def forward(
-            self,
-            x: Tensor,
-            hn: Tensor,
-            cn: Tensor
-            ) -> Tuple[Tensor, Tensor, Tensor]:
+        self, x: Tensor, hn: Tensor, cn: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         self.validate_dims(x, hn, cn)
         out = self.emb(x)
         out, (hn, cn) = self.lstm(out, (hn, cn))
@@ -63,23 +59,22 @@ class PredNet(nn.Module):
     def get_zeros_hidden_state(self, batch_size: int) -> Tuple[Tensor, Tensor]:
         return (
             torch.zeros((self.n_layers, batch_size, self.hidden_size)),
-            torch.zeros((self.n_layers, batch_size, self.hidden_size))
+            torch.zeros((self.n_layers, batch_size, self.hidden_size)),
         )
 
-    def validate_dims(
-            self,
-            x: Tensor,
-            hn: Tensor,
-            cn: Tensor
-            ) -> None:
-        assert hn.shape[0] == self.n_layers, \
-            'The hidden state should match the number of layers'
-        assert hn.shape[2] == self.hidden_size, \
-            'The hidden state should match the hiden size'
-        assert cn.shape[0] == self.n_layers, \
-            'The cell state should match the number of layers'
-        assert cn.shape[2] == self.hidden_size, \
-            'The cell state should match the hiden size'
+    def validate_dims(self, x: Tensor, hn: Tensor, cn: Tensor) -> None:
+        assert (
+            hn.shape[0] == self.n_layers
+        ), "The hidden state should match the number of layers"
+        assert (
+            hn.shape[2] == self.hidden_size
+        ), "The hidden state should match the hiden size"
+        assert (
+            cn.shape[0] == self.n_layers
+        ), "The cell state should match the number of layers"
+        assert (
+            cn.shape[2] == self.hidden_size
+        ), "The cell state should match the hiden size"
 
 
 class TransNet(nn.Module):
@@ -93,14 +88,15 @@ class TransNet(nn.Module):
     lstm : nn.Module
         The network's RNN layer
     """
+
     def __init__(
-            self,
-            input_size: int,
-            hidden_size: int,
-            n_layers: int,
-            dropout: float,
-            is_bidirectional: bool
-            ) -> None:
+        self,
+        input_size: int,
+        hidden_size: int,
+        n_layers: int,
+        dropout: float,
+        is_bidirectional: bool,
+    ) -> None:
         """
         Args:
             input_size (int): The number of input features per time step,
@@ -116,7 +112,7 @@ class TransNet(nn.Module):
             num_layers=n_layers,
             batch_first=True,
             dropout=dropout,
-            bidirectional=is_bidirectional
+            bidirectional=is_bidirectional,
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -141,19 +137,15 @@ class JoinNet(nn.Module):
     join_mood: Callable
         The mood of operation
     """
+
     MODES = {
-        'multiplicative': lambda f, g: f * g,
-        'mul': lambda f, g: f * g,
-        'additive': lambda f, g: f + g,
-        'add': lambda f, g: f + g
+        "multiplicative": lambda f, g: f * g,
+        "mul": lambda f, g: f * g,
+        "additive": lambda f, g: f + g,
+        "add": lambda f, g: f + g,
     }
 
-    def __init__(
-            self,
-            input_size: int,
-            vocab_size: int,
-            mode: str
-            ) -> None:
+    def __init__(self, input_size: int, vocab_size: int, mode: str) -> None:
         """
         Args:
             input_size (int): The dimension of each timesteps features
@@ -163,10 +155,7 @@ class JoinNet(nn.Module):
         """
         super().__init__()
         self.join_mood = self.MODES[mode]
-        self.fc = nn.Linear(
-            in_features=input_size,
-            out_features=vocab_size
-        )
+        self.fc = nn.Linear(in_features=input_size, out_features=vocab_size)
 
     def forward(self, f: Tensor, g: Tensor) -> Tensor:
         """performs forward propagation step
@@ -206,31 +195,28 @@ class Model(nn.Module):
     sos_idx: int
         The index of the start of sentence symbol
     """
+
     def __init__(
-            self,
-            prednet_params: dict,
-            transnet_params: dict,
-            joinnet_params: dict,
-            phi_idx: int,
-            pad_idx: int,
-            sos_idx: int,
-            device='cuda'
-            ) -> None:
+        self,
+        prednet_params: dict,
+        transnet_params: dict,
+        joinnet_params: dict,
+        phi_idx: int,
+        pad_idx: int,
+        sos_idx: int,
+        device="cuda",
+    ) -> None:
         super().__init__()
         self.prednet = PredNet(**prednet_params).to(device)
         self.transnet = TransNet(**transnet_params).to(device)
         self.joinnet = JoinNet(**joinnet_params).to(device)
-        self.prednet_hidden_size = prednet_params['hidden_size']
+        self.prednet_hidden_size = prednet_params["hidden_size"]
         self.device = device
         self.phi_idx = phi_idx
         self.pad_idx = pad_idx
         self.sos_idx = sos_idx
 
-    def forward(
-            self,
-            x: Tensor,
-            max_length: int
-            ) -> Tensor:
+    def forward(self, x: Tensor, max_length: int) -> Tensor:
         # TODO: Code Refactoring and documentation
         # FIX: feeding phis to the predict network
         batch_size, T, *_ = x.shape
@@ -255,7 +241,7 @@ class Model(nn.Module):
             gu = self.keep_last_char(gu, torch.argmax(preds, dim=-1))
             counter, update_mask, term_state = self.update_states(
                 gu, counter, counter_ceil, term_state, t
-                )
+            )
             if (update_mask.sum().item() == batch_size) or (max_length == t):
                 break
         return result, term_state
@@ -276,13 +262,13 @@ class Model(nn.Module):
         return (is_phi * gu) + (~is_phi * preds)
 
     def update_states(
-            self,
-            gu: Tensor,
-            counter: Tensor,
-            counter_ceil: Tensor,
-            term_state: Tensor,
-            t: int
-            ) -> Tuple[Tensor, Tensor, Tensor]:
+        self,
+        gu: Tensor,
+        counter: Tensor,
+        counter_ceil: Tensor,
+        term_state: Tensor,
+        t: int,
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         """Updates the positional related tensors, these positionals store
         the state of the pointers and these are teh counter and the term_state
         tensors
@@ -301,19 +287,12 @@ class Model(nn.Module):
         """
         counter = counter + ((gu.cpu() == self.phi_idx).squeeze())
         counter, update_mask = self.clip_counter(counter, counter_ceil)
-        term_state = self.update_termination_state(
-            term_state, update_mask, t
-            )
+        term_state = self.update_termination_state(term_state, update_mask, t)
         return counter, update_mask, term_state
 
     def predict_next(
-            self,
-            gu: Tensor,
-            h: Tensor,
-            c: Tensor,
-            counter: Tensor,
-            trans_result: Tensor
-            ) -> Tuple[Tensor, Tensor, Tensor]:
+        self, gu: Tensor, h: Tensor, c: Tensor, counter: Tensor, trans_result: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         """Does a single prediction over time
 
         Args:
@@ -334,32 +313,26 @@ class Model(nn.Module):
         preds = self.joinnet(fy, out)
         return preds, h, c
 
-    def get_counter_ceil(
-            self, counter: Tensor, T: int
-            ) -> Tensor:
+    def get_counter_ceil(self, counter: Tensor, T: int) -> Tensor:
         return counter + T - 1
 
-    def get_sos_seed(
-            self, batch_size: int
-            ) -> Tensor:
+    def get_sos_seed(self, batch_size: int) -> Tensor:
         return torch.LongTensor([[self.sos_idx]] * batch_size).to(self.device)
 
     def feed_into_transnet(self, x: Tensor) -> Tensor:
         return self.transnet(x)
 
     def feed_into_prednet(
-            self, yu: Tensor, h: Tensor, c: Tensor
-            ) -> Tuple[Tensor, Tensor, Tensor]:
+        self, yu: Tensor, h: Tensor, c: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         return self.transnet(yu, h, c)
 
-    def get_counter_start(
-            self, batch_size: int, max_size: int
-            ) -> Tensor:
+    def get_counter_start(self, batch_size: int, max_size: int) -> Tensor:
         return torch.arange(0, batch_size * max_size, max_size)
 
     def clip_counter(
-            self, counter: Tensor, ceil_vector: Tensor
-            ) -> Tuple[Tensor, Tensor]:
+        self, counter: Tensor, ceil_vector: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         """Clips the counter to the ceil values,
         if the value at index i in the counter
         exceeded teh value at index i at the ceil_vector
@@ -381,11 +354,8 @@ class Model(nn.Module):
         return upper_bounded + kept_counts, update_mask
 
     def update_termination_state(
-            self,
-            term_state: Tensor,
-            update_mask: Tensor,
-            last_index: int
-            ) -> Tensor:
+        self, term_state: Tensor, update_mask: Tensor, last_index: int
+    ) -> Tensor:
         """Updates the termination state, where the
         it stores if an example m reached the end of transcription or not
 

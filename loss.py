@@ -4,17 +4,12 @@ from torch import Tensor
 
 
 class Loss(nn.Module):
-    def __init__(self, phi_idx: int, device='cuda') -> None:
+    def __init__(self, phi_idx: int, device="cuda") -> None:
         super().__init__()
         self.phi_idx = phi_idx
         self.device = device
 
-    def forward(
-            self,
-            probs: Tensor,
-            target: Tensor,
-            target_lengths: Tensor
-            ) -> Tensor:
+    def forward(self, probs: Tensor, target: Tensor, target_lengths: Tensor) -> Tensor:
         target_lengths = target_lengths.to(self.device)
         batch_size, max_length, *_ = probs.shape
         n_chars = target_lengths.max().item()
@@ -43,15 +38,13 @@ class Loss(nn.Module):
             Tensor: The loss
         """
         # should we normalize by the number of paths ?
-        loss = torch.diagonal(torch.index_select(
-            scores[:, :, -1], dim=1, index=target_lengths
-            ))
+        loss = torch.diagonal(
+            torch.index_select(scores[:, :, -1], dim=1, index=target_lengths)
+        )
         loss = -1 * loss
         return loss.mean()
 
-    def get_score_matrix(
-            self, batch_size: int, n_chars: int, n_nulls: int
-            ) -> Tensor:
+    def get_score_matrix(self, batch_size: int, n_chars: int, n_nulls: int) -> Tensor:
         """Returns a zeros matrix with (B, n_chars, n_nulls) shape
 
         Args:
@@ -66,8 +59,8 @@ class Loss(nn.Module):
         return torch.zeros(batch_size, n_chars + 1, n_nulls + 1)
 
     def update_scores(
-            self, scores: Tensor, probs: Tensor, target: Tensor, p: int, c: int
-            ) -> Tensor:
+        self, scores: Tensor, probs: Tensor, target: Tensor, p: int, c: int
+    ) -> Tensor:
         """Updates the given scores matrix based on the values of p and c
 
         Args:
@@ -94,17 +87,19 @@ class Loss(nn.Module):
         phi_probs = self.get_phi_probs(probs, c, p)
         scores[:, c, p] = torch.logsumexp(
             torch.stack(
-                [scores[:, c, p - 1] + self.log(phi_probs),
-                scores[:, c - 1, p] + self.log(chars_probs)]
-            ), dim=0)
+                [
+                    scores[:, c, p - 1] + self.log(phi_probs),
+                    scores[:, c - 1, p] + self.log(chars_probs),
+                ]
+            ),
+            dim=0,
+        )
         return scores
 
     def get_phi_probs(self, probs: Tensor, c: int, p: int) -> Tensor:
         return probs[:, c + p - 1, self.phi_idx]
 
-    def get_chars_probs(
-            self, probs: Tensor, target: Tensor, c: int, p: int
-            ) -> Tensor:
+    def get_chars_probs(self, probs: Tensor, target: Tensor, c: int, p: int) -> Tensor:
         all_seqs = probs[:, p + c - 1]
         result = torch.index_select(all_seqs, dim=-1, index=target[:, c - 1])
         return torch.diagonal(result)

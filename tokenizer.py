@@ -1,22 +1,17 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod, abstractproperty
 from dataclasses import dataclass
-from typing import (
-    Callable,
-    List,
-    Tuple,
-    Union
-    )
+from typing import Callable, List, Tuple, Union
 from os import PathLike
 from data_loaders import JSONLoader
 from utils import save_json
 from functools import wraps
 
-OOV = '<OOV>'
-PHI = '_'
-SOS = '<SOS>'
-EOS = '<EOS>'
-PAD = '<PAD>'
+OOV = "<OOV>"
+PHI = "_"
+SOS = "<SOS>"
+EOS = "<EOS>"
+PAD = "<PAD>"
 
 
 def check_token(token: str) -> Callable:
@@ -25,13 +20,16 @@ def check_token(token: str) -> Callable:
     Args:
         token ([type]): the token to be checked
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(obj, token=token):
             if token in obj._token_to_id:
                 return obj._token_to_id[token]
             return func(obj, token)
+
         return wrapper
+
     return decorator
 
 
@@ -91,8 +89,8 @@ class SpecialTokens:
     def phi_token(self):
         return self._phi[0]
 
-class ITokenizer(ABC):
 
+class ITokenizer(ABC):
     @abstractmethod
     def ids2tokens(self):
         pass
@@ -135,13 +133,13 @@ class ITokenizer(ABC):
 
 
 class BaseTokenizer(ITokenizer):
-    _oov_key = 'oov'
-    _sos_key = 'sos'
-    _eos_key = 'eos'
-    _pad_key = 'pad'
-    _phi_key = 'phi'
-    _token_to_id_key = 'token_to_id'
-    _special_tokens_key = 'special_tokens'
+    _oov_key = "oov"
+    _sos_key = "sos"
+    _eos_key = "eos"
+    _pad_key = "pad"
+    _phi_key = "phi"
+    _token_to_id_key = "token_to_id"
+    _special_tokens_key = "special_tokens"
 
     def __init__(self) -> None:
         super().__init__()
@@ -190,10 +188,9 @@ class BaseTokenizer(ITokenizer):
         return self
 
     def _reset_id_to_token(self) -> None:
-        self._id_to_token = dict(zip(
-            self._token_to_id.values(),
-            self._token_to_id.keys()
-            ))
+        self._id_to_token = dict(
+            zip(self._token_to_id.values(), self._token_to_id.keys())
+        )
 
     def __set_special_tokens_dict(self, data: dict) -> None:
         if self._oov_key in data:
@@ -222,11 +219,8 @@ class BaseTokenizer(ITokenizer):
         return data
 
     def load_tokenizer(
-            self,
-            tokenizer_path: Union[str, PathLike],
-            *args,
-            **kwargs
-            ) -> ITokenizer:
+        self, tokenizer_path: Union[str, PathLike], *args, **kwargs
+    ) -> ITokenizer:
         data = JSONLoader(tokenizer_path).load()
         self._token_to_id = data[self._token_to_id_key]
         self.__set_special_tokens_dict(data[self._special_tokens_key])
@@ -239,15 +233,10 @@ class BaseTokenizer(ITokenizer):
         self._reset_id_to_token()
         return self
 
-    def save_tokenizer(
-            self,
-            save_path: Union[str, PathLike],
-            *args,
-            **kwargs
-            ) -> None:
+    def save_tokenizer(self, save_path: Union[str, PathLike], *args, **kwargs) -> None:
         data = {
             self._token_to_id_key: self._token_to_id,
-            self._special_tokens_key: self.__get_special_tokens_dict()
+            self._special_tokens_key: self.__get_special_tokens_dict(),
         }
         save_json(save_path, data)
 
@@ -256,10 +245,11 @@ class BaseTokenizer(ITokenizer):
 
     def tokens2ids(self, sentence: str) -> List[int]:
         sentence = self.preprocess_tokens(sentence)
-        return list(map(
-            lambda x: self._token_to_id.get(x, self.special_tokens.oov_id),
-            sentence)
+        return list(
+            map(
+                lambda x: self._token_to_id.get(x, self.special_tokens.oov_id), sentence
             )
+        )
 
     def batch_tokenizer(self, data: List[str]) -> list:
         return list(map(self.tokens2ids, data))
@@ -273,7 +263,7 @@ class CharTokenizer(BaseTokenizer):
         super().__init__()
 
     def get_tokens(self, data: List[str]):
-        return set(''.join(data))
+        return set("".join(data))
 
     def preprocess_tokens(self, sentence: str) -> List[str]:
         return list(sentence)
